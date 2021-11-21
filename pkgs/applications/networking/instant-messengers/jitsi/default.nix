@@ -1,10 +1,10 @@
-{ stdenv, lib, fetchurl, makeDesktopItem, unzip, ant, jdk8
+{ stdenv, lib, fetchurl, makeDesktopItem, unzip, ant, jdk8, coreutils, gnused
+, makeWrapper
 # Optional, Jitsi still runs without, but you may pass null:
-, alsa-lib, dbus, gtk2, libpulseaudio, openssl, xorg
-}:
+, alsa-lib, dbus, gtk2, libpulseaudio, openssl, xorg }:
 
-let jdk = jdk8; in
-stdenv.mkDerivation rec {
+let jdk = jdk8;
+in stdenv.mkDerivation rec {
   pname = "jitsi";
   version = "2.10.5550";
 
@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
   };
 
   libPath = lib.makeLibraryPath ([
-    stdenv.cc.cc  # For libstdc++.
+    stdenv.cc.cc # For libstdc++.
     alsa-lib
     dbus
     gtk2
@@ -37,8 +37,8 @@ stdenv.mkDerivation rec {
     xorg.libXv
   ]);
 
-  nativeBuildInputs = [ unzip ];
-  buildInputs = [ ant jdk ];
+  nativeBuildInputs = [ unzip makeWrapper ];
+  buildInputs = [ ant jdk coreutils gnused ];
 
   buildPhase = "ant make";
 
@@ -55,6 +55,7 @@ stdenv.mkDerivation rec {
       --subst-var-by EXTRALIBS ${gtk2.out}/lib
     sed -e 's,^java\ ,${jdk}/bin/java ,' -i $out/bin/jitsi
     patchShebangs $out
+    wrapProgram $out/bin/jitsi --prefix PATH : ${coreutils}/bin:${gnused}/bin
     libPath="$libPath:${jdk.home}/lib/${jdk.architecture}"
     find $out/ -type f -name '*.so' | while read file; do
       patchelf --set-rpath "$libPath" "$file" && \
